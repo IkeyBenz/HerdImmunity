@@ -9,18 +9,35 @@ class Simulation:
     def __init__(self, populationSize, vaccPercentage, virus, initialInfected = 1):
         self.population = []
         self.logger = Logger('log.txt')
-        self.currentlyInfected = 0
-        self.currentlyVaccinated = 0
-        for i in range(populationSize):
-            uid = '0'*(7-len(str(i))) + str(i)
-            isVaccinated = random() <= vaccPercentage
-            if isVaccinated: self.currentlyVaccinated += 1
-            isInfected = not isVaccinated and self.currentlyInfected < initialInfected
-            if isInfected: self.currentlyInfected += 1
-            personsVirus = virus if isInfected else None
-            self.population.append(Person(uid, isVaccinated, personsVirus, isInfected))
         self.itterations = 0
         self.currentlyAlive = populationSize
+        self.virus = virus
+        self.vacc_percentage = vaccPercentage
+        self.currentlyAlive = populationSize
+        self.currentlyInfected = 0
+        self.currentlyVaccinated = 0
+        self.popSize = populationSize
+        self.initializePopulation(initialInfected)
+
+    def initializePopulation(self, initialInfected):
+        for i in range(self.popSize):
+            uid = i
+            isVaccinated, isInfected, personsVirus = None, None, None
+            if self.currentlyVaccinated < (self.popSize * self.vacc_percentage):
+                isVaccinated = True
+                self.currentlyVaccinated += 1
+            else:
+                if self.currentlyInfected < initialInfected:
+                    isInfected = True
+                    personsVirus = self.virus
+                    self.currentlyInfected += 1
+                else:
+                    isInfected = False
+                    isVaccinated = False
+                    personsVirus = None
+            
+            self.population.append(Person(uid, isVaccinated, personsVirus, isInfected))
+        print(self.currentlyInfected)
 
     def runItteration(self):
         self.itterations += 1
@@ -28,8 +45,16 @@ class Simulation:
               'Currenly Alive: ' + str(self.currentlyAlive), 
               'Currently Vaccinated: ' + str(self.currentlyVaccinated),
               'Currently Infected: ' + str(self.currentlyInfected), sep="\n")
-        alivePeople = [person for person in self.population if person.is_alive]
-        sickPeople = [person for person in self.population if person.is_infected and person.is_alive]
+            #Commented out the below because it is wasteful to use the same loop twice
+        # alivePeople = [person for person in self.population if not person.is_infected]
+        # sickPeople = [person for person in self.population if person.is_infected]
+        alivePeople = []
+        sickPeople = []
+        for person in self.population:
+            if person.is_infected:
+                sickPeople.append(person)
+            else:
+                alivePeople.append(person)
 
         for sickPerson in sickPeople:
             for _ in range(100):
@@ -45,7 +70,8 @@ class Simulation:
         for person in self.population:
             if person.is_infected:
                 person.checkForDeath()
-                if not person.is_alive: 
+                if not person.is_alive:
+                    self.population.pop(person.uid) 
                     deadPeople += 1
                 self.logger.log_infection_survival(person, not person.is_alive)
         self.currentlyAlive -= deadPeople
@@ -54,6 +80,8 @@ class Simulation:
         return deadPeople
 
     def simulate(self):
+        self.logger.write_metadata(len(self.population), self.vacc_percentage, self.virus.name, self.virus.mortalityRate, self.virus.reproductionRate)
+        print(self.currentlyAlive, self.currentlyInfected)
         while self.currentlyAlive > 0 and self.currentlyInfected > 0:
             self.runItteration()
             deadPeople = self.surveyDamage()
