@@ -1,8 +1,8 @@
 from person import Person
 from random import randint, random, seed
-seed(42)
 from logger import Logger
 from virus import Virus
+from graph import Grapher
 import sys
 
 class Simulation:
@@ -17,7 +17,9 @@ class Simulation:
         self.currentlyInfected = 0
         self.currentlyVaccinated = 0
         self.popSize = populationSize
+        self.graph = Grapher(['Alive', 'Vaccinated', 'Infected', 'Dead'], virus.name)
         self.initializePopulation(initialInfected)
+        
 
     def initializePopulation(self, initialInfected):
         for i in range(self.popSize):
@@ -37,7 +39,15 @@ class Simulation:
                     personsVirus = None
             
             self.population.append(Person(uid, isVaccinated, personsVirus, isInfected))
-        print(self.currentlyInfected)
+        self.recordGraphData()
+
+    def recordGraphData(self):
+        self.graph.recordPointsForItteration({
+            'Alive': len([person for person in self.population if person.is_alive]),
+            'Vaccinated': len([person for person in self.population if person.is_vaccinated]),
+            'Infected': len([person for person in self.population if person.is_infected]),
+            'Dead': self.popSize - len([person for person in self.population if person.is_alive])
+        })
 
     def runItteration(self):
         self.itterations += 1
@@ -61,6 +71,7 @@ class Simulation:
                 didInfect = sickPerson.interactWith(victim)
                 if not didInfect: self.currentlyVaccinated += 1
                 self.logger.log_interaction(sickPerson, victim, didInfect)
+        
 
     def surveyDamage(self):
         deadPeople = 0
@@ -68,10 +79,11 @@ class Simulation:
             if person.is_infected:
                 person.checkForDeath()
                 if not person.is_alive:
-                    self.population.pop(person.uid) 
+                    # self.population.pop(person.uid) 
                     deadPeople += 1
                 self.logger.log_infection_survival(person, not person.is_alive)
         self.currentlyAlive -= deadPeople
+        self.population = [person for person in self.population if person.is_alive]
         self.currentlyVaccinated = len([p for p in self.population if p.is_vaccinated])
         self.currentlyInfected = len([p for p in self.population if p.is_infected])
         return deadPeople
@@ -83,7 +95,9 @@ class Simulation:
             self.runItteration()
             deadPeople = self.surveyDamage()
             self.logger.log_time_step(deadPeople, self.itterations)
+            self.recordGraphData()
         self.logger.log_file.close()
+        self.graph.show()
 
 def main():
     params = sys.argv[1:]

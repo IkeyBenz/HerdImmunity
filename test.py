@@ -1,5 +1,6 @@
 from simulation import Simulation
 from virus import Virus
+
 def testNewSimDefault():
     simVirus = Virus('Ebola', 0.5, 0.3)
     sim = Simulation(100, 0.4, simVirus)
