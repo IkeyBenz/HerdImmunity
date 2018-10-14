@@ -45,9 +45,6 @@ class Simulation:
               'Currenly Alive: ' + str(self.currentlyAlive), 
               'Currently Vaccinated: ' + str(self.currentlyVaccinated),
               'Currently Infected: ' + str(self.currentlyInfected), sep="\n")
-            #Commented out the below because it is wasteful to use the same loop twice
-        # alivePeople = [person for person in self.population if not person.is_infected]
-        # sickPeople = [person for person in self.population if person.is_infected]
         alivePeople = []
         sickPeople = []
         for person in self.population:
